@@ -14,62 +14,130 @@
 #define TAM 3
 
 typedef struct reg{
-    char cpf[32];
+    int cpf[11];
     char nome[32];
     char cargo[32];
 }Aluno;
 
-void criar(FILE *fp,Aluno alunos[TAM]){
+void criar(Aluno alunos[TAM]){
     int i;
 
-    fp=fopen("registro.txt","w");
+    FILE *fp;
+
+    fp=fopen("registro.bin","wb");
 
     for(i=0;i<TAM;i++){
         printf("Digite: cpf, nome e cargo\n");
-        fgets(alunos[i].cpf,32,stdin);
+        scanf("%d",alunos[i].cpf);
+        getchar();
         fgets(alunos[i].nome,32,stdin);
         fgets(alunos[i].cargo,32,stdin);
-        fputs(alunos[i].cpf,fp);
-        fputs(alunos[i].nome,fp);
-        fputs(alunos[i].cargo,fp);
+        fwrite(alunos[i].cpf,4,sizeof(alunos[i].cpf),fp);
+        fwrite(alunos[i].nome,1,sizeof(alunos[i].nome),fp);
+        fwrite(alunos[i].cargo,1,sizeof(alunos[i].cargo),fp);
+
     }
     fclose(fp);
 }
 
-int busca(FILE *fp,char bcpf[15]){ //TA FUNCIONANDO!!!!
-    int i=0;
-    Aluno busca;
+// int busca(char bcpf[32]){
+//     int i=0;
+//     Aluno busca;
+//     FILE *fp;
+//
+//     fp=fopen("registro.txt","r");
+//     while(i<TAM*3){
+//         fgets(busca.cpf,32,fp);
+//         if(!(strcmp(busca.cpf,bcpf))){
+//
+//             fclose(fp);
+//             return i;
+//           }
+//         i++;
+//     }
+//     fclose(fp);
+//     return -1;
+// }
 
-    fp=fopen("registro.txt","r");
-    while(i<TAM*3){
-        fgets(busca.cpf,15,fp);
-        if(!(strcmp(busca.cpf,bcpf))){
+void mostrar(){
+    int i,j;
+    FILE *fp;
+    Aluno aluno;
+    fp=fopen("registro.bin","rb");
+    for(i=0;i<TAM;i++){
+        fread(aluno.cpf,4,sizeof(aluno.cpf),fp);
+        fread(aluno.nome,1,sizeof(aluno.nome),fp);
+        fread(aluno.cargo,1,sizeof(aluno.cargo),fp);
 
-            fclose(fp);
-            return i;
-          }
+        for(j=0;j<11;j++)
+            printf("%d",aluno.cpf[j]);
+        printf("\n");
+        printf("%s",aluno.nome);
+        printf("%s",aluno.cargo);
+    }
+}
+void excluir(int position){
+  char ch;
+  int i=0;
+
+  FILE *temp;
+  FILE *fp;
+
+  fp=fopen("registro.txt","r+");
+  temp=fopen("temp.txt","w");
+
+  while((ch=fgetc(fp))!=EOF){
+    if(ch=='\n')
         i++;
+    if(i==position || i==position+1 || i==position+2){
+        continue;
+    }
+    fputc(ch,temp);
+  }
+  fclose(fp);
+  fclose(temp);
+
+  remove("registro.txt");
+  rename("temp.txt","registro.txt");
+}
+
+void modificar(char bcpf[32],int position){
+    char ch,novo_nome[32],novo_cargo[32];
+    int i=0;
+
+    FILE *temp;
+    FILE *fp;
+
+    fp=fopen("registro.txt","r+");
+    temp=fopen("temp.txt","w");
+
+    while((ch=fgetc(fp))!=EOF){
+      if(ch=='\n')
+          i++;
+      if(i==position+1){
+          printf("Digite o nome do CPF %s:\n",bcpf);
+          fgets(novo_nome,32,stdin);
+          fputs(novo_nome,temp);
+          continue;
+      }
+      if(i==position+2){
+          printf("Digite o cargo do CPF %s:\n",bcpf);
+          fgets(novo_cargo,32,stdin);
+          fputs(novo_cargo,temp);
+          continue;
+      }
+
+      fputc(ch,temp);
     }
     fclose(fp);
-    return -1;
-}
-void excluir(FILE *fp,int position){
-  int i;
-  char car;
-  fp=fopen("registro.txt","a");
-  for(i=0;i<3;i++){
-    fgetc(fp);
-  }
-  fputs("oi",fp);
-  // for(i=0;i<3;i++){
-  //   fseek(fp,busca+i,SEEK_SET);
-  //   fputs("",fp);
-  // }
-  fclose(fp);
+    fclose(temp);
+
+    remove("registro.txt");
+    rename("temp.txt","registro.txt");
 }
 
 int main(){
-    FILE *fp;
+
     Aluno alunos[TAM];
     int op=1;
     char bcpf[32];
@@ -77,17 +145,18 @@ int main(){
 
     while(op){
         printf("Escolha a opcao:\n");
-        printf("1.Escrever no arquivo\n2.Para excluir um registro\n0.Sair\n");
+        printf("1.Escrever no arquivo\n2.Para excluir um registro\n3.Modificar o registro\n0.Sair\n");
         scanf("%d",&op);
         getchar();
         switch (op) {
-            case 1:criar(fp,alunos);break;
-            case 2:printf("Digite o cpf:\n");
-                   fgets(bcpf,32,stdin);
-
-                   excluir(fp,(busca(fp,bcpf)));
-                   break;
-
+            case 1:criar(alunos);mostrar();break;
+            // case 2:printf("Digite o cpf:\n");
+            //        fgets(bcpf,32,stdin);
+            //        excluir((busca(bcpf)));
+            //        break;
+            // case 3:printf("Digite o cpf:\n");
+            //        fgets(bcpf,32,stdin);
+            //        modificar(bcpf,busca(bcpf));
 
         }
 
