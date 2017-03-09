@@ -11,10 +11,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#define TAM 3
+#define TAM 10
 
 typedef struct reg{
-    int cpf[11];
+    char cpf[15];
     char nome[32];
     char cargo[32];
 }Aluno;
@@ -28,135 +28,124 @@ void criar(Aluno alunos[TAM]){
 
     for(i=0;i<TAM;i++){
         printf("Digite: cpf, nome e cargo\n");
-        scanf("%d",alunos[i].cpf);
-        getchar();
+        fgets(alunos[i].cpf,32,stdin);
         fgets(alunos[i].nome,32,stdin);
         fgets(alunos[i].cargo,32,stdin);
-        fwrite(alunos[i].cpf,4,sizeof(alunos[i].cpf),fp);
-        fwrite(alunos[i].nome,1,sizeof(alunos[i].nome),fp);
-        fwrite(alunos[i].cargo,1,sizeof(alunos[i].cargo),fp);
+        fwrite(&alunos[i],sizeof(Aluno),1,fp);
 
     }
+
     fclose(fp);
 }
 
-// int busca(char bcpf[32]){
-//     int i=0;
-//     Aluno busca;
-//     FILE *fp;
-//
-//     fp=fopen("registro.txt","r");
-//     while(i<TAM*3){
-//         fgets(busca.cpf,32,fp);
-//         if(!(strcmp(busca.cpf,bcpf))){
-//
-//             fclose(fp);
-//             return i;
-//           }
-//         i++;
-//     }
-//     fclose(fp);
-//     return -1;
-// }
 
 void mostrar(){
-    int i,j;
     FILE *fp;
     Aluno aluno;
     fp=fopen("registro.bin","rb");
-    for(i=0;i<TAM;i++){
-        fread(aluno.cpf,4,sizeof(aluno.cpf),fp);
-        fread(aluno.nome,1,sizeof(aluno.nome),fp);
-        fread(aluno.cargo,1,sizeof(aluno.cargo),fp);
+    while(fread(&aluno,sizeof(Aluno),1,fp) !=0){
 
-        for(j=0;j<11;j++)
-            printf("%d",aluno.cpf[j]);
-        printf("\n");
+        printf("%s",aluno.cpf);
         printf("%s",aluno.nome);
         printf("%s",aluno.cargo);
     }
+    printf("Aperte qualquer tecla para continuar...\n");
+    getchar();
 }
-void excluir(int position){
-  char ch;
-  int i=0;
-
-  FILE *temp;
+void excluir(char buscacpf[11]){
+  Aluno aluno;
+  int flag=1;
+  FILE *ftemp;
   FILE *fp;
 
-  fp=fopen("registro.txt","r+");
-  temp=fopen("temp.txt","w");
+  fp=fopen("registro.bin","rb");
+  ftemp=fopen("temp.bin","wb");
 
-  while((ch=fgetc(fp))!=EOF){
-    if(ch=='\n')
-        i++;
-    if(i==position || i==position+1 || i==position+2){
-        continue;
+  while((fread(&aluno,sizeof(Aluno),1,fp))!=0){
+    if(strcmp(buscacpf,aluno.cpf) == 0){
+      printf("Funcionario deletado\n\n");
+      flag=0;
     }
-    fputc(ch,temp);
+    else{
+      fwrite(&aluno,sizeof(Aluno),1,ftemp);
+    }
   }
+  if(!flag)
+    printf("CPF nao encontrado\n\n");
   fclose(fp);
-  fclose(temp);
+  fclose(ftemp);
 
-  remove("registro.txt");
-  rename("temp.txt","registro.txt");
+  remove("registro.bin");
+  rename("temp.bin","registro.bin");
 }
 
-void modificar(char bcpf[32],int position){
-    char ch,novo_nome[32],novo_cargo[32];
-    int i=0;
+void modificar(char buscacpf[32]){
+  Aluno aluno;
+  int flag=1;
 
-    FILE *temp;
-    FILE *fp;
+  FILE *ftemp;
+  FILE *fp;
 
-    fp=fopen("registro.txt","r+");
-    temp=fopen("temp.txt","w");
+  fp=fopen("registro.bin","rb");
+  ftemp=fopen("temp.bin","wb");
 
-    while((ch=fgetc(fp))!=EOF){
-      if(ch=='\n')
-          i++;
-      if(i==position+1){
-          printf("Digite o nome do CPF %s:\n",bcpf);
-          fgets(novo_nome,32,stdin);
-          fputs(novo_nome,temp);
-          continue;
-      }
-      if(i==position+2){
-          printf("Digite o cargo do CPF %s:\n",bcpf);
-          fgets(novo_cargo,32,stdin);
-          fputs(novo_cargo,temp);
-          continue;
-      }
-
-      fputc(ch,temp);
+  while((fread(&aluno,sizeof(Aluno),1,fp))!=0){
+    if(strcmp(buscacpf,aluno.cpf) == 0){
+      printf("Digite o novo nome:\n");
+      fgets(aluno.nome,32,stdin);
+      printf("Digite o novo cargo:\n");
+      fgets(aluno.cargo,32,stdin);
+      fwrite(&aluno,sizeof(Aluno),1,ftemp);
+      printf("Alterado com sucesso\n\n");
+      flag=0;
     }
-    fclose(fp);
-    fclose(temp);
+    else{
+      fwrite(&aluno,sizeof(Aluno),1,ftemp);
+    }
+  }
+  if(!flag)
+    printf("CPF nao encontrado\n\n");
 
-    remove("registro.txt");
-    rename("temp.txt","registro.txt");
+  fclose(fp);
+  fclose(ftemp);
+
+  remove("registro.bin");
+  rename("temp.bin","registro.bin");
 }
 
 int main(){
 
     Aluno alunos[TAM];
     int op=1;
-    char bcpf[32];
+    char bcpf[15];
 
 
     while(op){
+        system("clear");
         printf("Escolha a opcao:\n");
-        printf("1.Escrever no arquivo\n2.Para excluir um registro\n3.Modificar o registro\n0.Sair\n");
+        printf("1.Escrever no registro\n2.Para excluir um registro\n3.Modificar o registro\n4.Vizualizar o registro\n0.Sair\n");
         scanf("%d",&op);
         getchar();
+
         switch (op) {
-            case 1:criar(alunos);mostrar();break;
-            // case 2:printf("Digite o cpf:\n");
-            //        fgets(bcpf,32,stdin);
-            //        excluir((busca(bcpf)));
-            //        break;
-            // case 3:printf("Digite o cpf:\n");
-            //        fgets(bcpf,32,stdin);
-            //        modificar(bcpf,busca(bcpf));
+            case 1:system("clear");
+                   criar(alunos);
+                   break;
+            case 2:system("clear");
+                   printf("Digite o cpf:\n");
+                   fgets(bcpf,32,stdin);
+                   excluir(bcpf);
+                   break;
+            case 3:system("clear");
+                   printf("Digite o cpf:\n");
+                   fgets(bcpf,32,stdin);
+                   modificar(bcpf);
+                   break;
+            case 4:system("clear");
+                   mostrar();
+                   break;
+            case 0:return 0;
+            default:printf("Opcao invalida\n");
 
         }
 
